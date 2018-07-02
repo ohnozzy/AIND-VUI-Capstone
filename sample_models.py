@@ -100,7 +100,7 @@ def deep_rnn_model(input_dim, units, recur_layers, output_dim=29):
     bn_rnn = input_data
     # TODO: Add recurrent layers, each with batch normalization
     for i in range(recur_layers):
-        simp_rnn = GRU(units, return_sequences=True, implementation=2, name='rnn'+str(i))(bn_rnn)
+        simp_rnn = GRU(units, return_sequences=True, activation='relu', implementation=2, name='rnn'+str(i))(bn_rnn)
         bn_rnn = BatchNormalization()(simp_rnn)
         
     # TODO: Add a TimeDistributed(Dense(output_dim)) layer
@@ -142,7 +142,7 @@ def final_model(input_dim, output_dim=29, filters=100, cnn_kernel_size=5, recur_
                      name='conv1d')(input_data)
     bn_rnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
     for i in range(recur_layers):
-        simp_rnn = Bidirectional(GRU(rnn_units, return_sequences=True, implementation=2, name='rnn'+str(i)))(bn_rnn)
+        simp_rnn = Bidirectional(GRU(rnn_units, return_sequences=True, activation='relu', implementation=2, name='rnn'+str(i)))(bn_rnn)
         bn_rnn = BatchNormalization()(simp_rnn)
     
     time_dense = TimeDistributed(Dense(output_dim))(bn_rnn)
