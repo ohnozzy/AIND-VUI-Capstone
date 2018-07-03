@@ -1,7 +1,7 @@
 from keras import backend as K
 from keras.models import Model
 from keras.layers import (BatchNormalization, Conv1D, Dense, Input, 
-    TimeDistributed, Activation, Bidirectional, SimpleRNN, GRU, LSTM)
+    TimeDistributed, Activation, Bidirectional, SimpleRNN, GRU, LSTM, MaxPooling1D)
 
 def simple_rnn_model(input_dim, output_dim=29):
     """ Build a recurrent network for speech 
@@ -55,7 +55,7 @@ def cnn_rnn_model(input_dim, filters, kernel_size, conv_stride,
     # Add batch normalization
     bn_cnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
     # Add a recurrent layer
-    simp_rnn = SimpleRNN(units, activation='relu',
+    simp_rnn = GRU(units, activation='relu',
         return_sequences=True, implementation=2, name='rnn')(bn_cnn)
     # TODO: Add batch normalization
     bn_rnn = BatchNormalization()(simp_rnn)
@@ -140,9 +140,10 @@ def final_model(input_dim, output_dim=29, filters=100, cnn_kernel_size=5, recur_
                      dilation_rate=2,
                      activation='relu',
                      name='conv1d')(input_data)
-    bn_rnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
+    pool = MaxPooling1D(strides=2, padding='same')(conv_1d)
+    bn_rnn = BatchNormalization(name='bn_conv_1d')(pool)
     for i in range(recur_layers):
-        simp_rnn = Bidirectional(GRU(rnn_units, return_sequences=True, activation='relu', implementation=2, name='rnn'+str(i)))(bn_rnn)
+        simp_rnn = Bidirectional(GRU(rnn_units, dropout=0.3, recurrent_dropout=0.2, return_sequences=True, activation='relu', implementation=2, name='rnn'+str(i)))(bn_rnn)
         bn_rnn = BatchNormalization()(simp_rnn)
     
     time_dense = TimeDistributed(Dense(output_dim))(bn_rnn)
@@ -151,6 +152,6 @@ def final_model(input_dim, output_dim=29, filters=100, cnn_kernel_size=5, recur_
     # Specify the model
     model = Model(inputs=input_data, outputs=y_pred)
     # TODO: Specify model.output_length
-    model.output_length = lambda x: cnn_output_length(x, cnn_kernel_size*2-1, 'valid', 1)
+    model.output_length = lambda x: cnn_output_length(x, cnn_kernel_size, 'valid', 2, dilation=2)
     print(model.summary())
     return model
